@@ -39,6 +39,8 @@ use usbd_serial::SerialPort;
 
 // Used to demonstrate writing formatted strings
 use core::fmt::Write;
+use embedded_hal_0_2::adc::OneShot;
+// use cortex_m::prelude::_embedded_hal_adc_OneShot;
 use heapless::String;
 
 /// Entry point to our bare-metal application.
@@ -95,6 +97,15 @@ fn main() -> ! {
 
     // Set the LED to be an output
     let mut led_pin = pins.led.into_push_pull_output();
+
+    // Enable ADC
+    let mut adc = hal::Adc::new(pac.ADC, &mut pac.RESETS);
+
+    // Enable the temperature sense channel
+    let mut temperature_sensor = adc.take_temp_sensor().unwrap();
+
+    // Configure GPIO26 as an ADC input
+    let mut adc_pin_0 = hal::adc::AdcPin::new(pins.gpio26).unwrap();
 
     // Set up the USB Communications Class Device driver
     let mut serial = SerialPort::new(&usb_bus);
@@ -166,6 +177,13 @@ fn main() -> ! {
             if !led_on {
                 led_pin.set_high().unwrap();
                 led_on = true;
+                // let temp_sens_adc_counts: u16 = adc.read(&mut temperature_sensor).unwrap();
+                let pin_adc_counts: u16 = adc.read(&mut adc_pin_0).unwrap();
+                let mut text: String<64> = String::new();
+                // writeln!(&mut text, "ADC readings: Temperature: {temp_sens_adc_counts:02}\r\n").unwrap();
+                writeln!(&mut text, "ADC readings: Pin: {pin_adc_counts:02}\r\n").unwrap();
+                // writeln!(&mut text, "ADC readings: Temperature: {temp_sens_adc_counts:02} Pin: {pin_adc_counts:02}\r\n").unwrap();
+                let _ = serial.write(text.as_bytes());
             }
         }
     }
