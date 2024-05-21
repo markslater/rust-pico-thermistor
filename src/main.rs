@@ -15,6 +15,9 @@
 // The macro for our start-up function
 use rp_pico::entry;
 
+// GPIO traits
+use embedded_hal::digital::OutputPin;
+
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
 //noinspection ALL
@@ -70,16 +73,16 @@ fn main() -> ! {
 
     let timer = hal::Timer::new(pac.TIMER, &mut pac.RESETS, &clocks);
 
-    #[cfg(feature = "rp2040-e5")]
-    {
-        let sio = hal::Sio::new(pac.SIO);
-        let _pins = rp_pico::Pins::new(
-            pac.IO_BANK0,
-            pac.PADS_BANK0,
-            sio.gpio_bank0,
-            &mut pac.RESETS,
-        );
-    }
+    // The single-cycle I/O block controls our GPIO pins
+    let sio = hal::Sio::new(pac.SIO);
+
+    // Set the pins up according to their function on this particular board
+    let pins = rp_pico::Pins::new(
+        pac.IO_BANK0,
+        pac.PADS_BANK0,
+        sio.gpio_bank0,
+        &mut pac.RESETS,
+    );
 
     // Set up the USB driver
     let usb_bus = UsbBusAllocator::new(hal::usb::UsbBus::new(
@@ -89,6 +92,9 @@ fn main() -> ! {
         true,
         &mut pac.RESETS,
     ));
+
+    // Set the LED to be an output
+    let mut led_pin = pins.led.into_push_pull_output();
 
     // Set up the USB Communications Class Device driver
     let mut serial = SerialPort::new(&usb_bus);
@@ -104,6 +110,7 @@ fn main() -> ! {
         .build();
 
     let mut said_hello = false;
+    let mut led_on = false;
     loop {
         // A welcome message at the beginning
         if !said_hello && timer.get_counter().ticks() >= 2_000_000 {
@@ -150,7 +157,12 @@ fn main() -> ! {
                 }
             }
         }
+        if led_on && (timer.get_counter().ticks() % 1_000_000) >= 500_000 {
+            led_pin.set_low().unwrap();
+            led_on = false;
+        } else if !led_on && (timer.get_counter().ticks() % 1_000_000) < 500_000 {
+            led_pin.set_high().unwrap();
+            led_on = true;
+        }
     }
 }
-
-// End of file
