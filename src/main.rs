@@ -12,8 +12,8 @@
 #![no_std]
 #![no_main]
 
-// The macro for our start-up function
-use rp_pico::entry;
+// Used to demonstrate writing formatted strings
+use core::fmt::Write;
 
 // GPIO traits
 use embedded_hal::digital::OutputPin;
@@ -23,25 +23,20 @@ use embedded_hal::digital::OutputPin;
 //noinspection ALL
 use panic_halt as _;
 
-// A shorter alias for the Peripheral Access Crate, which provides low-level
-// register access
-use rp_pico::hal::pac;
-
+// use cortex_m::prelude::_embedded_hal_adc_OneShot;
+use heapless::String;
+// The macro for our start-up function
+use rp_pico::entry;
 // A shorter alias for the Hardware Abstraction Layer, which provides
 // higher-level drivers.
 use rp_pico::hal;
-
+// A shorter alias for the Peripheral Access Crate, which provides low-level
+// register access
+use rp_pico::hal::pac;
 // USB Device support
 use usb_device::{class_prelude::*, prelude::*};
-
 // USB Communications Class Device support
 use usbd_serial::SerialPort;
-
-// Used to demonstrate writing formatted strings
-use core::fmt::Write;
-use embedded_hal_0_2::adc::OneShot;
-// use cortex_m::prelude::_embedded_hal_adc_OneShot;
-use heapless::String;
 
 /// Entry point to our bare-metal application.
 ///
@@ -102,10 +97,21 @@ fn main() -> ! {
     let mut adc = hal::Adc::new(pac.ADC, &mut pac.RESETS);
 
     // Enable the temperature sense channel
-    let mut temperature_sensor = adc.take_temp_sensor().unwrap();
-
+    // let mut temperature_sensor = adc.take_temp_sensor().unwrap();
+    //
+    // let mut temperature_sensor_fifo = adc.build_fifo()
+    //     .clock_divider(0, 0) // sample as fast as possible (500ksps. This is the default)
+    //     .set_channel(&mut temperature_sensor)
+    //     .start();
+    //
     // Configure GPIO26 as an ADC input
     let mut adc_pin_0 = hal::adc::AdcPin::new(pins.gpio26).unwrap();
+
+    let mut pin_0_fifo = adc.build_fifo()
+        .clock_divider(0, 0) // sample as fast as possible (500ksps. This is the default)
+        .set_channel(&mut adc_pin_0)
+        .start();
+
 
     // Set up the USB Communications Class Device driver
     let mut serial = SerialPort::new(&usb_bus);
@@ -177,12 +183,12 @@ fn main() -> ! {
             if !led_on {
                 led_pin.set_high().unwrap();
                 led_on = true;
-                // let temp_sens_adc_counts: u16 = adc.read(&mut temperature_sensor).unwrap();
-                let pin_adc_counts: u16 = adc.read(&mut adc_pin_0).unwrap();
+                // let temperature_adc_counts: u16 = temperature_sensor_fifo.read();
+                let pin_adc_counts: u16 = pin_0_fifo.read();
                 let mut text: String<64> = String::new();
-                // writeln!(&mut text, "ADC readings: Temperature: {temp_sens_adc_counts:02}\r\n").unwrap();
+                // writeln!(&mut text, "ADC readings: Temperature: {temperature_adc_counts:02}").unwrap();
                 writeln!(&mut text, "ADC readings: Pin: {pin_adc_counts:02}\r\n").unwrap();
-                // writeln!(&mut text, "ADC readings: Temperature: {temp_sens_adc_counts:02} Pin: {pin_adc_counts:02}\r\n").unwrap();
+                // writeln!(&mut text, "ADC readings: Temperature: {temp_sens_adc_counts:02} Pin: {pin_adc_counts:02}").unwrap();
                 let _ = serial.write(text.as_bytes());
             }
         }
