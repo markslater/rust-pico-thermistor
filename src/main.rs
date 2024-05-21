@@ -4,7 +4,7 @@
 //! the main thread.
 //!
 //! This will create a USB Serial device echoing anything it receives. Incoming
-//! ASCII characters are converted to upercase, so you can tell it is working
+//! ASCII characters are converted to uppercase, so you can tell it is working
 //! and not just local-echo!
 //!
 //! See the `Cargo.toml` file for Copyright and license details.
@@ -17,6 +17,7 @@ use rp_pico::entry;
 
 // Ensure we halt the program on panic (if we don't mention this crate it won't
 // be linked)
+//noinspection ALL
 use panic_halt as _;
 
 // A shorter alias for the Peripheral Access Crate, which provides low-level
