@@ -157,12 +157,16 @@ fn main() -> ! {
                 }
             }
         }
-        if led_on && (timer.get_counter().ticks() % 1_000_000) >= 500_000 {
-            led_pin.set_low().unwrap();
-            led_on = false;
-        } else if !led_on && (timer.get_counter().ticks() % 1_000_000) < 500_000 {
-            led_pin.set_high().unwrap();
-            led_on = true;
+        if (timer.get_counter().ticks() % 1_000_000) < 500_000 {
+            if led_on {
+                led_pin.set_low().unwrap();
+                led_on = false;
+            }
+        } else {
+            if !led_on {
+                led_pin.set_high().unwrap();
+                led_on = true;
+            }
         }
     }
 }
