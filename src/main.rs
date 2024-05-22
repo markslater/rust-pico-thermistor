@@ -38,6 +38,11 @@ use usb_device::{class_prelude::*, prelude::*};
 // USB Communications Class Device support
 use usbd_serial::SerialPort;
 
+use libm::log;
+
+const B: f64 = 3950.0; // B value of the thermistor
+const V_MAX: f64 = 2500.0; // Full Range Voltage
+
 /// Entry point to our bare-metal application.
 ///
 /// The `#[entry]` macro ensures the Cortex-M start-up code calls this function
@@ -184,10 +189,15 @@ fn main() -> ! {
                 led_pin.set_high().unwrap();
                 led_on = true;
                 // let temperature_adc_counts: u16 = temperature_sensor_fifo.read();
-                let pin_adc_counts: u16 = pin_0_fifo.read();
+                let pin_adc_counts: u16 = pin_0_fifo.read(); // actually only 12 bits of data
+                let r: f64 = 10_000.0 / ((4096.0 / pin_adc_counts as f64) - 1.0);
+                let lnr: f64 = log(r / 10_000.0);
+                let temperature: f64 = -273.15 + 1.0/(1.0/298.15 + lnr / B);
+                // let temperature = 1. / (log(1. / (V_MAX / pin_adc_counts as f64 - 1.)) / B + 1.0 / 298.15) - 273.15;
                 let mut text: String<64> = String::new();
-                // writeln!(&mut text, "ADC readings: Temperature: {temperature_adc_counts:02}").unwrap();
-                writeln!(&mut text, "ADC readings: Pin: {pin_adc_counts:02}\r\n").unwrap();
+                // writeln!(&mut text, "ADC readings: Temperature: {pin_adc_counts:02}\r\n").unwrap();
+                // writeln!(&mut text, "ADC readings: Resistance: {r:.2} Ω\r\n").unwrap();
+                writeln!(&mut text, "ADC readings: Temperature: {temperature:.1}\r\n").unwrap();
                 // writeln!(&mut text, "ADC readings: Temperature: {temp_sens_adc_counts:02} Pin: {pin_adc_counts:02}").unwrap();
                 let _ = serial.write(text.as_bytes());
             }
