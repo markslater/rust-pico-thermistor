@@ -41,7 +41,7 @@ use usbd_serial::SerialPort;
 use libm::log;
 
 const B: f64 = 3950.0; // B value of the thermistor
-const V_MAX: f64 = 2500.0; // Full Range Voltage
+const VOLTAGE_DIVIDER_RESISTOR: f64 = 10_000.0;
 
 /// Entry point to our bare-metal application.
 ///
@@ -101,14 +101,6 @@ fn main() -> ! {
     // Enable ADC
     let mut adc = hal::Adc::new(pac.ADC, &mut pac.RESETS);
 
-    // Enable the temperature sense channel
-    // let mut temperature_sensor = adc.take_temp_sensor().unwrap();
-    //
-    // let mut temperature_sensor_fifo = adc.build_fifo()
-    //     .clock_divider(0, 0) // sample as fast as possible (500ksps. This is the default)
-    //     .set_channel(&mut temperature_sensor)
-    //     .start();
-    //
     // Configure GPIO26 as an ADC input
     let mut adc_pin_0 = hal::adc::AdcPin::new(pins.gpio26).unwrap();
 
@@ -188,17 +180,11 @@ fn main() -> ! {
             if !led_on {
                 led_pin.set_high().unwrap();
                 led_on = true;
-                // let temperature_adc_counts: u16 = temperature_sensor_fifo.read();
-                let pin_adc_counts: u16 = pin_0_fifo.read(); // actually only 12 bits of data
-                let r: f64 = 10_000.0 / ((4096.0 / pin_adc_counts as f64) - 1.0);
-                let lnr: f64 = log(r / 10_000.0);
-                let temperature: f64 = -273.15 + 1.0/(1.0/298.15 + lnr / B);
-                // let temperature = 1. / (log(1. / (V_MAX / pin_adc_counts as f64 - 1.)) / B + 1.0 / 298.15) - 273.15;
+                let pin_0_adc_counts: u16 = pin_0_fifo.read(); // actually only 12 bits of data
+                let thermistor_resistance: f64 = VOLTAGE_DIVIDER_RESISTOR / ((2_u16.pow(12) as f64 / pin_0_adc_counts as f64) - 1.0);
+                let temperature: f64 = -273.15 + 1.0/(1.0/298.15 + log(thermistor_resistance / VOLTAGE_DIVIDER_RESISTOR) / B);
                 let mut text: String<64> = String::new();
-                // writeln!(&mut text, "ADC readings: Temperature: {pin_adc_counts:02}\r\n").unwrap();
-                // writeln!(&mut text, "ADC readings: Resistance: {r:.2} Ω\r\n").unwrap();
                 writeln!(&mut text, "ADC readings: Temperature: {temperature:.1}\r\n").unwrap();
-                // writeln!(&mut text, "ADC readings: Temperature: {temp_sens_adc_counts:02} Pin: {pin_adc_counts:02}").unwrap();
                 let _ = serial.write(text.as_bytes());
             }
         }
