@@ -12,6 +12,8 @@
 #![no_std]
 #![no_main]
 
+mod thermistor;
+
 // Used to demonstrate writing formatted strings
 use core::fmt::Write;
 
@@ -41,6 +43,12 @@ use usbd_serial::SerialPort;
 use libm::log;
 
 const B: f64 = 3950.0; // B value of the thermistor
+
+const THERMISTOR_A: f64 = 1.284850279e-3;
+const THERMISTOR_B: f64 = 2.076544735e-4;
+const THERMISTOR_C: f64 = 2.004280704e-7;
+
+
 const VOLTAGE_DIVIDER_RESISTOR: f64 = 10_000.0;
 
 /// Entry point to our bare-metal application.
@@ -123,6 +131,8 @@ fn main() -> ! {
         .device_class(2) // from: https://www.usb.org/defined-class-codes
         .build();
 
+    let thermistor = thermistor::Thermistor::new(12);
+
     let mut said_hello = false;
     let mut led_on = false;
     loop {
@@ -181,12 +191,41 @@ fn main() -> ! {
                 led_pin.set_high().unwrap();
                 led_on = true;
                 let pin_0_adc_counts: u16 = pin_0_fifo.read(); // actually only 12 bits of data
-                let thermistor_resistance: f64 = VOLTAGE_DIVIDER_RESISTOR / ((2_u16.pow(12) as f64 / pin_0_adc_counts as f64) - 1.0);
+                let voltage = thermistor.voltage(pin_0_adc_counts);
+                let voltage_out: f64 = 3.3 * (pin_0_adc_counts as f64 / 4096_f64);
+                let thermistor_resistance: f64 = 10_000_f64 - (VOLTAGE_DIVIDER_RESISTOR / ((2_u16.pow(12) as f64 / pin_0_adc_counts as f64) - 1.0));
                 let temperature: f64 = -273.15 + 1.0/(1.0/298.15 + log(thermistor_resistance / VOLTAGE_DIVIDER_RESISTOR) / B);
+                let log_thermistor_resistance = log(thermistor_resistance);
+                let c_term = (THERMISTOR_C * (log_thermistor_resistance));
+                let revised_temperature: f64 = THERMISTOR_A + (THERMISTOR_B * log_thermistor_resistance) + (c_term * c_term * c_term);
                 let mut text: String<64> = String::new();
-                writeln!(&mut text, "ADC readings: Temperature: {temperature:.1}\r\n").unwrap();
+                writeln!(&mut text, "Voltage: {voltage:.3}\r\n").unwrap();
+                writeln!(&mut text, "Thermistor resistance: {thermistor_resistance:.1}\r\n").unwrap();
+                // writeln!(&mut text, "Revised temperature: {revised_temperature:.1}\r\n").unwrap();
+                // writeln!(&mut text, "ADC readings: Temperature: {temperature:.1}\r\n").unwrap();
                 let _ = serial.write(text.as_bytes());
             }
         }
+    }
+}
+
+fn temperature(adc_value: u16) -> f64 {
+    let voltage_out: f64 = 3.3 * (adc_value as f64 / 4096_f64);
+    let thermistor_resistance: f64 = 10_000_f64 - (VOLTAGE_DIVIDER_RESISTOR / ((2_u16.pow(12) as f64 / adc_value as f64) - 1.0));
+    let temperature: f64 = -273.15 + 1.0/(1.0/298.15 + log(thermistor_resistance / VOLTAGE_DIVIDER_RESISTOR) / B);
+    let log_thermistor_resistance = log(thermistor_resistance);
+    let c_term = (THERMISTOR_C * (log_thermistor_resistance));
+    let revised_temperature: f64 = THERMISTOR_A + (THERMISTOR_B * log_thermistor_resistance) + (c_term * c_term * c_term);
+    return 0.0;
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::temperature;
+
+    #[test]
+    fn can_get_temperature() {
+        let foo = temperature(2048);
+        assert_eq!(foo, 0.0);
     }
 }
