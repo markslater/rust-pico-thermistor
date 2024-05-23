@@ -16,11 +16,16 @@ impl Thermistor {
             c: 0_f64,
             fixed_resistor_ohms: 10_000_f64,
             reference_voltage: 3.3,
-            adc_max: 2_u16.pow(adc_resolution_bits as u32) as f64
+            adc_max: (2_u16.pow(adc_resolution_bits as u32) - 1) as f64
         };
     }
 
     pub fn voltage(&self, adc_count: u16) -> f64 {
         self.reference_voltage * (adc_count as f64 / self.adc_max)
+    }
+
+    pub fn thermistor_resistance(&self, adc_count: u16) -> f64 {
+        let voltage = self.voltage(adc_count);
+        self.fixed_resistor_ohms * (1_f64 / ((self.reference_voltage/voltage) - 1_f64))
     }
 }

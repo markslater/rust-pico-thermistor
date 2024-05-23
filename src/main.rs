@@ -193,7 +193,8 @@ fn main() -> ! {
                 let pin_0_adc_counts: u16 = pin_0_fifo.read(); // actually only 12 bits of data
                 let voltage = thermistor.voltage(pin_0_adc_counts);
                 let voltage_out: f64 = 3.3 * (pin_0_adc_counts as f64 / 4096_f64);
-                let thermistor_resistance: f64 = 10_000_f64 - (VOLTAGE_DIVIDER_RESISTOR / ((2_u16.pow(12) as f64 / pin_0_adc_counts as f64) - 1.0));
+                // let thermistor_resistance: f64 = 10_000_f64 - (VOLTAGE_DIVIDER_RESISTOR / ((2_u16.pow(12) as f64 / pin_0_adc_counts as f64) - 1.0));
+                let thermistor_resistance: f64 = thermistor.thermistor_resistance(pin_0_adc_counts);
                 let temperature: f64 = -273.15 + 1.0/(1.0/298.15 + log(thermistor_resistance / VOLTAGE_DIVIDER_RESISTOR) / B);
                 let log_thermistor_resistance = log(thermistor_resistance);
                 let c_term = (THERMISTOR_C * (log_thermistor_resistance));
