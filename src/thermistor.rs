@@ -1,7 +1,7 @@
 pub struct Thermistor {
-    a: f64,
-    b: f64,
-    c: f64,
+    _a: f64,
+    _b: f64,
+    _c: f64,
     fixed_resistor_ohms: f64,
     reference_voltage: f64,
     adc_max: f64
@@ -11,9 +11,9 @@ impl Thermistor {
 
     pub fn new(adc_resolution_bits: u8) -> Thermistor {
         return Thermistor {
-            a: 0_f64,
-            b: 0_f64,
-            c: 0_f64,
+            _a: 0_f64,
+            _b: 0_f64,
+            _c: 0_f64,
             fixed_resistor_ohms: 10_000_f64,
             reference_voltage: 3.3,
             adc_max: (2_u16.pow(adc_resolution_bits as u32) - 1) as f64
