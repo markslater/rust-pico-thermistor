@@ -128,7 +128,7 @@ fn main() -> ! {
         .device_class(2) // from: https://www.usb.org/defined-class-codes
         .build();
 
-    let thermistor = thermistor::Thermistor::new(12);
+    let thermistor = thermistor::Thermistor::new(12, 10_000_f64, 3.3);
 
     let mut said_hello = false;
     let mut led_on = false;
