@@ -29,3 +29,14 @@ impl Thermistor {
         self.fixed_resistor_ohms * (1_f64 / ((self.reference_voltage/voltage) - 1_f64))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{thermistor};
+
+    #[test]
+    fn can_get_temperature() {
+        let thermistor = thermistor::Thermistor::new(12);
+        assert_eq!(thermistor.thermistor_resistance(0), 0.0);
+    }
+}

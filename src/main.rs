@@ -206,18 +206,3 @@ fn main() -> ! {
         }
     }
 }
-
-fn temperature(adc_value: u16) -> f64 {
-    return adc_value as f64;
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::temperature;
-
-    #[test]
-    fn can_get_temperature() {
-        let foo = temperature(2048);
-        assert_eq!(foo, 2048.0);
-    }
-}
