@@ -124,7 +124,7 @@ fn main() -> ! {
         .device_class(2) // from: https://www.usb.org/defined-class-codes
         .build();
 
-    let thermistor = thermistor::Thermistor::new(12, 10_000_f64, 3.3, 3650_f64);
+    let thermistor = thermistor::Thermistor::new(12, 10_000_f64, 3.3, 1.284850279e-3, 2.076544735e-4, 2.004280704e-7);
 
     let mut said_hello = false;
     let mut led_on = false;
@@ -183,16 +183,8 @@ fn main() -> ! {
             if !led_on {
                 led_pin.set_high().unwrap();
                 led_on = true;
-                let pin_0_adc_counts: u16 = pin_0_fifo.read(); // actually only 12 bits of data
-                let temperature = thermistor.temperature_degrees_centigrade(pin_0_adc_counts);
-                // let log_thermistor_resistance = log(thermistor_resistance);
-                // let c_term = THERMISTOR_C * (log_thermistor_resistance);
-                // let revised_temperature: f64 = THERMISTOR_A + (THERMISTOR_B * log_thermistor_resistance) + (c_term * c_term * c_term);
+                let temperature = thermistor.temperature_degrees_centigrade(pin_0_fifo.read());
                 let mut text: String<64> = String::new();
-                // writeln!(&mut text, "Voltage: {voltage:.3}\r\n").unwrap();
-                // writeln!(&mut text, "Thermistor resistance: {thermistor_resistance:.1} Ω\r\n").unwrap();
-                // writeln!(&mut text, "Revised temperature: {revised_temperature:.1}\r\n").unwrap();
-                writeln!(&mut text, "ADC value: {pin_0_adc_counts}\r\n").unwrap();
                 writeln!(&mut text, "Temperature: {temperature:.1}°C\r\n").unwrap();
                 let _ = serial.write(text.as_bytes());
             }
