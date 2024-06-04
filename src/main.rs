@@ -107,7 +107,7 @@ fn main() -> ! {
     let mut adc = hal::Adc::new(pac.ADC, &mut pac.RESETS);
 
     // Configure GPIO26 as an ADC input
-    let mut adc_pin_0 = hal::adc::AdcPin::new(pins.gpio26).unwrap();
+    let mut adc_pin_0 = hal::adc::AdcPin::new(pins.gpio26.into_floating_input()).unwrap();
 
     let mut pin_0_fifo = adc.build_fifo()
         .clock_divider(0, 0) // sample as fast as possible (500ksps. This is the default)
